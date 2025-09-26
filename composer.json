@@ -1,0 +1,37 @@
+{
+    "name": "jo72anni/stripe-cart-checkout",
+    "description": "Carrello e checkout con Stripe Payment",
+    "type": "project",
+    "require": {
+        "stripe/stripe-php": "^14.0",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "jo72Anni",
+            "email": "tua@email.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "StripeCart\\": "src/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "echo 'Stripe PHP SDK installed successfully!'"
+        ]
+    },
+    "config": {
+        "platform-check": false,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
