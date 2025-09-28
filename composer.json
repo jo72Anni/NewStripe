@@ -1,7 +1,8 @@
 {
     "name": "jo72anni/stripe-cart-checkout",
-    "description": "Carrello e checkout con Stripe Payment",
+    "description": "Carrello e checkout con Stripe Payment e database PostgreSQL",
     "type": "project",
+    "keywords": ["stripe", "payments", "ecommerce", "postgresql", "checkout"],
     "require": {
         "stripe/stripe-php": "^14.0",
         "ext-curl": "*",
@@ -18,25 +19,64 @@
     "authors": [
         {
             "name": "jo72Anni",
-            "email": "tua@email.com"
+            "email": "tua@email.com",
+            "role": "Developer"
         }
     ],
     "autoload": {
         "psr-4": {
             "StripeCart\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "StripeCart\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-install-cmd": [
-            "echo '=== Stripe PHP SDK e dipendenze installate ==='",
-            "echo 'Verifica estensioni PHP:'",
-            "php -m | grep -E '(pdo|pgsql|curl|json|mbstring|zip)'"
+            "echo '🔄 Stripe Cart Checkout - Installazione dipendenze'",
+            "echo '📦 Stripe PHP SDK: ^14.0'",
+            "echo '🗄️  Database: PostgreSQL'",
+            "echo '✅ Verifica estensioni PHP...'",
+            "php -r \"\$extensions = ['pdo', 'pdo_pgsql', 'curl', 'json', 'mbstring', 'zip']; foreach(\$extensions as \$ext) { echo extension_loaded(\$ext) ? '✅ ' . \$ext . PHP_EOL : '❌ ' . \$ext . PHP_EOL; }\"",
+            "echo '🚀 Installazione completata!'"
+        ],
+        "post-update-cmd": [
+            "echo '📥 Aggiornamento dipendenze completato'"
+        ],
+        "test": [
+            "phpunit"
+        ],
+        "check-extensions": [
+            "php -r \"foreach(['pdo', 'pdo_pgsql', 'curl', 'json', 'mbstring', 'zip'] as \$ext) { if (!extension_loaded(\$ext)) { throw new Exception('Estensione mancante: ' . \$ext); } } echo '✅ Tutte le estensioni sono caricate' . PHP_EOL;\""
         ]
+    },
+    "scripts-descriptions": {
+        "test": "Esegui i test PHPUnit",
+        "check-extensions": "Verifica che tutte le estensioni richieste siano caricate"
     },
     "config": {
         "platform-check": false,
-        "sort-packages": true
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
+        "process-timeout": 0
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "support": {
+        "issues": "https://github.com/jo72anni/stripe-cart-checkout/issues",
+        "source": "https://github.com/jo72anni/stripe-cart-checkout"
+    },
+    "extra": {
+        "stripe": {
+            "version": "14.0"
+        }
+    }
 }
