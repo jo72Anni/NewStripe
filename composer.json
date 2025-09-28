@@ -26,38 +26,32 @@
     "autoload": {
         "psr-4": {
             "StripeCart\\": "src/"
-        },
-        "files": [
-            "src/helpers.php"
-        ]
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "StripeCart\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-install-cmd": [
-            "echo '🔄 Stripe Cart Checkout - Installazione dipendenze'",
+            "echo '=== 🛒 Stripe Cart Checkout ==='",
             "echo '📦 Stripe PHP SDK: ^14.0'",
             "echo '🗄️  Database: PostgreSQL'",
-            "echo '✅ Verifica estensioni PHP...'",
-            "php -r \"\$extensions = ['pdo', 'pdo_pgsql', 'curl', 'json', 'mbstring', 'zip']; foreach(\$extensions as \$ext) { echo extension_loaded(\$ext) ? '✅ ' . \$ext . PHP_EOL : '❌ ' . \$ext . PHP_EOL; }\"",
-            "echo '🚀 Installazione completata!'"
+            "echo '🔧 Verifica estensioni PHP...'",
+            "php -r \"\$missing = []; foreach(['pdo', 'pdo_pgsql', 'curl', 'json', 'mbstring', 'zip'] as \$ext) { if (!extension_loaded(\$ext)) { \$missing[] = \$ext; } } if (empty(\$missing)) { echo '✅ Tutte le estensioni sono caricate' . PHP_EOL; } else { echo '❌ Estensioni mancanti: ' . implode(', ', \$missing) . PHP_EOL; }\"",
+            "echo '🚀 Sistema pronto per il deploy!'"
         ],
         "post-update-cmd": [
-            "echo '📥 Aggiornamento dipendenze completato'"
+            "echo '📥 Dipendenze aggiornate con successo'"
         ],
-        "test": [
-            "phpunit"
+        "check-env": [
+            "php -r \"\$required = ['STRIPE_SECRET_KEY', 'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']; \$missing = []; foreach(\$required as \$env) { if (empty(getenv(\$env))) { \$missing[] = \$env; } } if (empty(\$missing)) { echo '✅ Tutte le variabili d\\'ambiente sono configurate' . PHP_EOL; } else { echo '❌ Variabili mancanti: ' . implode(', ', \$missing) . PHP_EOL; }\""
         ],
-        "check-extensions": [
-            "php -r \"foreach(['pdo', 'pdo_pgsql', 'curl', 'json', 'mbstring', 'zip'] as \$ext) { if (!extension_loaded(\$ext)) { throw new Exception('Estensione mancante: ' . \$ext); } } echo '✅ Tutte le estensioni sono caricate' . PHP_EOL;\""
+        "check-system": [
+            "@check-env",
+            "@check-extensions"
         ]
     },
     "scripts-descriptions": {
-        "test": "Esegui i test PHPUnit",
-        "check-extensions": "Verifica che tutte le estensioni richieste siano caricate"
+        "check-env": "Verifica le variabili d'ambiente necessarie",
+        "check-system": "Verifica completo sistema (env + estensioni)",
+        "check-extensions": "Verifica estensioni PHP richieste"
     },
     "config": {
         "platform-check": false,
@@ -69,14 +63,5 @@
         "process-timeout": 0
     },
     "minimum-stability": "stable",
-    "prefer-stable": true,
-    "support": {
-        "issues": "https://github.com/jo72anni/stripe-cart-checkout/issues",
-        "source": "https://github.com/jo72anni/stripe-cart-checkout"
-    },
-    "extra": {
-        "stripe": {
-            "version": "14.0"
-        }
-    }
+    "prefer-stable": true
 }
