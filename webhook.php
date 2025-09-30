@@ -1,76 +1,75 @@
 <?php
 require_once 'vendor/autoload.php';
 
-// Prendi la chiave segreta e la chiave webhook (dal tuo Stripe Dashboard)
+// Config Stripe
 $stripe_secret_key = getenv('STRIPE_SECRET_KEY');
-$endpoint_secret = getenv('STRIPE_WEBHOOK_SECRET');
-
+$stripe_webhook_secret = getenv('STRIPE_WEBHOOK_SECRET');
 \Stripe\Stripe::setApiKey($stripe_secret_key);
 
-// Recupera il body e la firma inviata da Stripe
-$payload = @file_get_contents('php://input');
-$sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
-$event = null;
+// Config DB
+$db_host = getenv('DB_HOST');
+$db_name = getenv('DB_NAME');
+$db_user = getenv('DB_USER');
+$db_pass = getenv('DB_PASSWORD');
+$db_port = getenv('DB_PORT');
 
-try {
-    $event = \Stripe\Webhook::constructEvent(
-        $payload, $sig_header, $endpoint_secret
-    );
-} catch(\UnexpectedValueException $e) {
-    // Payload non valido
-    http_response_code(400);
-    exit();
-} catch(\Stripe\Exception\SignatureVerificationException $e) {
-    // Firma non valida
-    http_response_code(400);
-    exit();
-}
-
-// Connessione al DB
 try {
     $pdo = new PDO(
-        "pgsql:host=" . getenv('DB_HOST') . ";port=" . getenv('DB_PORT') . ";dbname=" . getenv('DB_NAME'),
-        getenv('DB_USER'),
-        getenv('DB_PASSWORD'),
+        "pgsql:host=$db_host;port=$db_port;dbname=$db_name",
+        $db_user,
+        $db_pass,
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]
     );
 } catch (PDOException $e) {
-    error_log("Errore connessione DB: " . $e->getMessage());
     http_response_code(500);
-    exit();
+    exit("DB Connection failed: " . $e->getMessage());
 }
 
-// Gestione eventi Stripe
-switch ($event->type) {
-    case 'checkout.session.completed':
-        $session = $event->data->object;
+// Leggi payload e firma
+$payload = @file_get_contents('php://input');
+$sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
-        // Aggiorna la transazione
-        $stmt = $pdo->prepare("
-            UPDATE transactions 
-            SET status = 'paid',
-                customer_email = :email,
-                stripe_payment_intent = :pi,
-                updated_at = NOW()
-            WHERE session_id = :sid
-        ");
-        $stmt->execute([
-            ':email' => $session->customer_details->email ?? null,
-            ':pi'    => $session->payment_intent ?? null,
-            ':sid'   => $session->id
-        ]);
-
-        break;
-
-    // Puoi aggiungere altri eventi se servono
-    case 'payment_intent.payment_failed':
-        $intent = $event->data->object;
-        error_log("Pagamento fallito: " . $intent->id);
-        break;
+try {
+    $event = \Stripe\Webhook::constructEvent(
+        $payload,
+        $sig_header,
+        $stripe_webhook_secret
+    );
+} catch (\Stripe\Exception\SignatureVerificationException $e) {
+    http_response_code(400);
+    exit('Webhook signature verification failed.');
+} catch (Exception $e) {
+    http_response_code(400);
+    exit('Invalid payload.');
 }
 
+// Gestisci l'evento
+if ($event->type === 'checkout.session.completed') {
+    $session = $event->data->object;
+
+    $session_id = $session->id;
+    $customer_email = $session->customer_details->email ?? null;
+    $payment_intent = $session->payment_intent ?? null;
+
+    // Aggiorna la transazione nel DB
+    $stmt = $pdo->prepare("
+        UPDATE transactions
+        SET status = 'completed',
+            customer_email = ?,
+            stripe_payment_intent = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = ?
+    ");
+    $stmt->execute([
+        $customer_email,
+        $payment_intent,
+        $session_id
+    ]);
+}
+
+// Risposta OK
 http_response_code(200);
 echo json_encode(['status' => 'ok']);
