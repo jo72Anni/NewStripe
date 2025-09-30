@@ -1,6 +1,10 @@
 <?php
 require_once 'vendor/autoload.php';
 
+// Configurazione Stripe
+$stripe_secret_key = getenv('STRIPE_SECRET_KEY');
+\Stripe\Stripe::setApiKey($stripe_secret_key);
+
 // Connessione al database
 try {
     $pdo = new PDO(
@@ -23,13 +27,24 @@ if (!$session_id) {
     die("Session ID mancante.");
 }
 
-// Recupera i dati della transazione
+// Recupera i dati della transazione dal DB
 $stmt = $pdo->prepare("SELECT * FROM transactions WHERE session_id = :sid LIMIT 1");
 $stmt->execute([':sid' => $session_id]);
 $transaction = $stmt->fetch();
 
-if (!$transaction) {
-    die("Nessuna transazione trovata.");
+// Recupera i dati freschi da Stripe
+try {
+    $session = \Stripe\Checkout\Session::retrieve($session_id);
+    $payment_intent = $session->payment_intent ? \Stripe\PaymentIntent::retrieve($session->payment_intent) : null;
+
+    // Aggiorna i dati con quelli di Stripe
+    $transaction['customer_email'] = $session->customer_details->email ?? $transaction['customer_email'];
+    $transaction['stripe_payment_intent'] = $session->payment_intent ?? $transaction['stripe_payment_intent'];
+    $transaction['status'] = $payment_intent ? $payment_intent->status : $transaction['status'];
+
+} catch (Exception $e) {
+    // Se Stripe fallisce, mostriamo solo i dati dal DB
+    error_log("Errore recupero Stripe: " . $e->getMessage());
 }
 
 ?>
@@ -101,4 +116,3 @@ if (!$transaction) {
     </div>
 </body>
 </html>
-
